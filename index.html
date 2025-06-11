@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ตัดสต๊อกสินค้า</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, select, button { font-size: 16px; margin: 8px 0; width: 100%; padding: 8px; }
+    #qr-reader { width: 100%; }
+  </style>
+</head>
+<body>
+
+  <h2>📦 ตัดสต๊อกสินค้า</h2>
+
+  <label>เลือกรายการสินค้า:</label>
+  <select id="productSelect"></select>
+
+  <label>หรือใส่รหัสสินค้าเอง:</label>
+  <input type="text" id="manualId" placeholder="ใส่รหัสสินค้า" />
+
+  <button onclick="startScan()">📷 สแกน QR Code</button>
+  <div id="qr-reader" style="display:none;"></div>
+
+  <label>จำนวนที่ต้องการตัด:</label>
+  <input type="number" id="qty" placeholder="จำนวน" />
+
+  <button onclick="cutStock()">✅ ตัดสต๊อก</button>
+
+  <p id="result"></p>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbz60VO18Il9BaBadFScEk0cD8EVkzltuEahbJozhJu7jAoa6NUcLjsbtl1fEQ7j7RPF/exec"; // ใส่ URL ของคุณ
+
+    async function loadProducts() {
+      const res = await fetch(`${API_URL}?action=getAll`);
+      const data = await res.json();
+      const select = document.getElementById("productSelect");
+      data.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.id;
+        option.text = `${p.name} (${p.qty} ${p.unit})`;
+        select.appendChild(option);
+      });
+    }
+
+    async function cutStock() {
+      const id = document.getElementById("manualId").value || document.getElementById("productSelect").value;
+      const qty = document.getElementById("qty").value;
+      if (!id || !qty) {
+        document.getElementById("result").innerText = "กรุณาใส่รหัสและจำนวน";
+        return;
+      }
+
+      const res = await fetch(`${API_URL}?action=cutStock&id=${id}&qty=${qty}`);
+      const text = await res.text();
+      document.getElementById("result").innerText = text;
+    }
+
+    function startScan() {
+      document.getElementById("qr-reader").style.display = "block";
+      const qr = new Html5Qrcode("qr-reader");
+      qr.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decoded) => {
+        document.getElementById("manualId").value = decoded;
+        qr.stop();
+        document.getElementById("qr-reader").style.display = "none";
+      });
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>
